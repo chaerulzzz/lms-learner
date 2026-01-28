@@ -1,6 +1,8 @@
 import type { User, AuthResponse } from '@/types/auth';
 import type { DashboardData } from '@/types/dashboard';
 
+export const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
+
 export const MOCK_TOKEN = 'mock-jwt-token-for-local-testing';
 
 export const mockUser: User = {

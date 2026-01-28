@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import type { User, LoginCredentials } from '@/types/auth';
 import type { ApiResponse } from '@/types/api';
 import { api } from '@/lib/api';
-import { mockAuthResponse, MOCK_TOKEN } from '@/lib/mockData';
+import { mockAuthResponse, MOCK_TOKEN, USE_MOCK } from '@/lib/mockData';
 
 interface AuthContextType {
   user: User | null;
@@ -20,20 +20,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isMockMode, setIsMockMode] = useState(false);
 
   useEffect(() => {
     const initAuth = async () => {
       try {
         const token = localStorage.getItem('authToken');
-        if (token) {
-          if (token === MOCK_TOKEN) {
-            setUser(mockAuthResponse.user);
-            setIsMockMode(true);
-          } else {
-            const response = await api.get<ApiResponse<User>>('/auth/me');
-            setUser(response.data);
-          }
+        if (!token) return;
+
+        if (USE_MOCK) {
+          setUser(mockAuthResponse.user);
+        } else {
+          const response = await api.get<ApiResponse<User>>('/auth/me');
+          setUser(response.data);
         }
       } catch {
         localStorage.removeItem('authToken');
@@ -47,22 +45,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(async (credentials: LoginCredentials) => {
     setError(null);
+
+    if (USE_MOCK) {
+      if (credentials.email === 'learner1@lms.com' && credentials.password === 'learner@123') {
+        localStorage.setItem('authToken', MOCK_TOKEN);
+        setUser(mockAuthResponse.user);
+      } else {
+        setError('Invalid credentials. Use learner1@lms.com / learner@123 in mock mode.');
+        throw new Error('Login failed');
+      }
+      return;
+    }
+
     try {
       const response = await api.post<ApiResponse<{ token: string; user: User }>>('/public/auth/login', credentials);
       const { token, user } = response.data;
       localStorage.setItem('authToken', token);
       setUser(user);
-      setIsMockMode(false);
     } catch {
-      if (credentials.email === 'learner1@lms.com' && credentials.password === 'learner@123') {
-        localStorage.setItem('authToken', MOCK_TOKEN);
-        setUser(mockAuthResponse.user);
-        setIsMockMode(true);
-        console.warn('[Mock Mode] Using mock authentication — backend is offline');
-      } else {
-        setError('Login failed. Please check your credentials.');
-        throw new Error('Login failed');
-      }
+      setError('Login failed. Please check your credentials.');
+      throw new Error('Login failed');
     }
   }, []);
 
@@ -70,7 +72,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem('authToken');
     setUser(null);
     setError(null);
-    setIsMockMode(false);
   }, []);
 
   return (
@@ -82,7 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAuthenticated: !!user,
         isLoading,
         error,
-        isMockMode,
+        isMockMode: USE_MOCK,
       }}
     >
       {children}
