@@ -1,10 +1,72 @@
+import { useAuth } from '@/hooks/useAuth';
+import { useDashboard } from '@/hooks/useDashboard';
+import { getProgressColor, getProgressTextColor } from '@/lib/utils';
+
 export default function Dashboard() {
+  const { user, logout, isMockMode } = useAuth();
+  const { data: dashboard, isLoading, isError } = useDashboard();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-neutral-light">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="card">
+                <div className="skeleton h-4 w-24 mb-2" />
+                <div className="skeleton h-8 w-16" />
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="card">
+                <div className="skeleton h-40 rounded-lg mb-3" />
+                <div className="skeleton h-4 w-3/4 mb-2" />
+                <div className="skeleton h-3 w-1/2" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-screen bg-neutral-light flex items-center justify-center">
+        <div className="card max-w-md w-full text-center">
+          <h2 className="text-xl font-bold text-status-error mb-2">Failed to load dashboard</h2>
+          <p className="text-neutral-dark mb-4">Something went wrong. Please try again.</p>
+          <button className="btn-primary" onClick={() => window.location.reload()}>
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-neutral-light">
+      {/* Mock Mode Banner */}
+      {isMockMode && (
+        <div className="bg-status-warning text-white text-center py-2 text-sm">
+          Local Mock Mode — Using dummy data. Backend is offline.
+        </div>
+      )}
+
       {/* Header */}
       <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-primary-red">My Learning Dashboard</h1>
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-neutral-dark hidden sm:inline">
+              Welcome, {user?.first_name || 'User'}
+            </span>
+            <button onClick={logout} className="btn-secondary text-sm px-3 py-1">
+              Logout
+            </button>
+          </div>
         </div>
       </header>
 
@@ -13,96 +75,131 @@ export default function Dashboard() {
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <div className="card">
-            <h3 className="text-sm font-medium text-neutral-dark mb-1">Total Courses</h3>
-            <p className="text-3xl font-bold text-primary-red">12</p>
-          </div>
-          <div className="card">
             <h3 className="text-sm font-medium text-neutral-dark mb-1">In Progress</h3>
-            <p className="text-3xl font-bold text-status-warning">5</p>
+            <p className="text-3xl font-bold text-status-warning">
+              {dashboard?.in_progress_courses.length || 0}
+            </p>
           </div>
           <div className="card">
             <h3 className="text-sm font-medium text-neutral-dark mb-1">Completed</h3>
-            <p className="text-3xl font-bold text-status-success">7</p>
+            <p className="text-3xl font-bold text-status-success">
+              {dashboard?.completed_courses_count || 0}
+            </p>
           </div>
           <div className="card">
             <h3 className="text-sm font-medium text-neutral-dark mb-1">GMFC Coins</h3>
-            <p className="text-3xl font-bold text-yellow-600">450</p>
+            <p className="text-3xl font-bold text-yellow-600">
+              {dashboard?.gmfc_coins || 0}
+            </p>
+          </div>
+          <div className="card">
+            <h3 className="text-sm font-medium text-neutral-dark mb-1">Learning Hours</h3>
+            <p className="text-3xl font-bold text-primary-red">
+              {dashboard?.total_learning_hours || 0}h
+            </p>
           </div>
         </div>
 
-        {/* Learning Paths Section */}
+        {/* User Profile Row */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="card flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-primary-red flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
+              {user?.first_name?.[0] || 'U'}
+            </div>
+            <div>
+              <p className="font-semibold">{user?.full_name || 'User'}</p>
+              <p className="text-sm text-neutral-dark">{user?.department || 'No department'}</p>
+            </div>
+          </div>
+          <div className="card">
+            <h3 className="text-sm font-medium text-neutral-dark mb-1">Badge Level</h3>
+            <p className="text-lg font-bold capitalize">{dashboard?.current_badge_level || 'None'}</p>
+          </div>
+          <div className="card">
+            <h3 className="text-sm font-medium text-neutral-dark mb-1">Leaderboard Rank</h3>
+            <p className="text-lg font-bold text-primary-red">#{dashboard?.leaderboard_rank || '-'}</p>
+          </div>
+        </div>
+
+        {/* Mandatory Courses */}
+        {dashboard?.mandatory_courses && dashboard.mandatory_courses.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-xl font-bold mb-4">Mandatory Courses</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {dashboard.mandatory_courses.map((course) => (
+                <div key={course.id} className="card">
+                  <div className="flex items-start justify-between mb-3">
+                    <h3 className="font-semibold">{course.title}</h3>
+                    <span className="badge-primary">MANDATORY</span>
+                  </div>
+                  <p className="text-sm text-neutral-dark mb-4 truncate-2-lines">
+                    {course.description}
+                  </p>
+                  <div className="progress-bar mb-2">
+                    <div
+                      className={`progress-fill ${getProgressColor(course.completion_percentage)}`}
+                      style={{ width: `${course.completion_percentage}%` }}
+                    />
+                  </div>
+                  <p className={`text-sm ${getProgressTextColor(course.completion_percentage)}`}>
+                    {course.completion_percentage}% Complete
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Continue Learning */}
         <div className="mb-8">
-          <h2 className="text-xl font-bold mb-4">My Learning Paths</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Example Learning Path Card */}
-            <div className="card">
-              <div className="flex items-start justify-between mb-3">
-                <h3 className="font-semibold">Frontend Development</h3>
-                <span className="badge-primary">MANDATORY</span>
-              </div>
-              <p className="text-sm text-neutral-dark mb-4">
-                Complete foundational frontend development courses
-              </p>
-              <div className="progress-bar mb-2">
-                <div className="progress-fill bg-progress-high" style={{ width: '75%' }}></div>
-              </div>
-              <p className="text-sm text-neutral-dark">75% Complete</p>
-            </div>
-
-            {/* Add more learning path cards as needed */}
-            <div className="card">
-              <div className="flex items-start justify-between mb-3">
-                <h3 className="font-semibold">React Advanced Patterns</h3>
-                <span className="badge bg-blue-100 text-blue-800">OPTIONAL</span>
-              </div>
-              <p className="text-sm text-neutral-dark mb-4">
-                Learn advanced React patterns and best practices
-              </p>
-              <div className="progress-bar mb-2">
-                <div className="progress-fill bg-progress-medium" style={{ width: '40%' }}></div>
-              </div>
-              <p className="text-sm text-neutral-dark">40% Complete</p>
-            </div>
-
-            <div className="card">
-              <div className="flex items-start justify-between mb-3">
-                <h3 className="font-semibold">TypeScript Fundamentals</h3>
-                <span className="badge-primary">MANDATORY</span>
-              </div>
-              <p className="text-sm text-neutral-dark mb-4">
-                Master TypeScript for type-safe development
-              </p>
-              <div className="progress-bar mb-2">
-                <div className="progress-fill bg-progress-complete" style={{ width: '100%' }}></div>
-              </div>
-              <p className="text-sm text-status-success">Completed</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Continue Learning Section */}
-        <div>
           <h2 className="text-xl font-bold mb-4">Continue Learning</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="card">
-              <div className="bg-gray-200 h-40 rounded-lg mb-3 flex items-center justify-center">
-                <span className="text-gray-400">Course Thumbnail</span>
+            {dashboard?.in_progress_courses.map((course) => (
+              <div key={course.id} className="card">
+                <div className="bg-gray-200 h-40 rounded-lg mb-3 flex items-center justify-center">
+                  <span className="text-gray-400">Course Thumbnail</span>
+                </div>
+                <div className="flex items-start justify-between mb-1">
+                  <h3 className="font-semibold">{course.title}</h3>
+                  {!course.is_mandatory && (
+                    <span className="badge bg-blue-100 text-blue-800">OPTIONAL</span>
+                  )}
+                </div>
+                <p className="text-sm text-neutral-dark mb-3 truncate-2-lines">
+                  {course.description}
+                </p>
+                <div className="progress-bar mb-2">
+                  <div
+                    className={`progress-fill ${getProgressColor(course.completion_percentage)}`}
+                    style={{ width: `${course.completion_percentage}%` }}
+                  />
+                </div>
+                <div className="flex items-center justify-between mt-2">
+                  <p className="text-sm text-neutral-dark">{course.completion_percentage}%</p>
+                  <button className="btn-primary text-sm px-3 py-1">Continue</button>
+                </div>
               </div>
-              <h3 className="font-semibold mb-2">Introduction to React Query</h3>
-              <p className="text-sm text-neutral-dark mb-3">Learn data fetching with React Query</p>
-              <button className="btn-primary w-full">Continue</button>
-            </div>
-
-            <div className="card">
-              <div className="bg-gray-200 h-40 rounded-lg mb-3 flex items-center justify-center">
-                <span className="text-gray-400">Course Thumbnail</span>
-              </div>
-              <h3 className="font-semibold mb-2">Tailwind CSS Mastery</h3>
-              <p className="text-sm text-neutral-dark mb-3">Build beautiful UIs with Tailwind</p>
-              <button className="btn-primary w-full">Continue</button>
-            </div>
+            ))}
           </div>
         </div>
+
+        {/* Earned Badges */}
+        {dashboard?.badges && dashboard.badges.length > 0 && (
+          <div>
+            <h2 className="text-xl font-bold mb-4">Earned Badges</h2>
+            <div className="flex flex-wrap gap-4">
+              {dashboard.badges.map((badge) => (
+                <div key={badge.id} className="card flex items-center gap-3 p-4">
+                  <span className="text-2xl">{badge.icon}</span>
+                  <div>
+                    <p className="font-semibold text-sm">{badge.name}</p>
+                    <p className="text-xs text-neutral-dark">{badge.description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

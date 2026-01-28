@@ -1,13 +1,32 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { login, isAuthenticated, error } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (isAuthenticated) {
+      const from = (location.state as { from?: string })?.from || '/dashboard';
+      navigate(from);
+    }
+  }, [isAuthenticated, navigate, location.state]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement login logic
-    console.log('Login:', { email, password });
+    setIsSubmitting(true);
+    try {
+      await login({ email, password });
+    } catch {
+      // Error handled by AuthContext
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -31,6 +50,7 @@ export default function Login() {
               className="input"
               placeholder="Enter your email"
               required
+              disabled={isSubmitting}
             />
           </div>
 
@@ -46,17 +66,36 @@ export default function Login() {
               className="input"
               placeholder="Enter your password"
               required
+              disabled={isSubmitting}
             />
           </div>
 
-          <button type="submit" className="btn-primary w-full">
-            Sign In
+          {error && (
+            <div className="p-3 bg-red-50 border border-status-error rounded-lg">
+              <p className="text-sm text-status-error">{error}</p>
+            </div>
+          )}
+
+          <button type="submit" className="btn-primary w-full" disabled={isSubmitting}>
+            {isSubmitting ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
 
-        <p className="text-center text-sm text-neutral-dark mt-4">
-          Don't have an account? Contact your administrator.
-        </p>
+        <div className="mt-6 pt-4 border-t border-neutral-medium">
+          <p className="text-xs text-center text-neutral-dark mb-2">
+            Local testing (backend offline):
+          </p>
+          <button
+            type="button"
+            className="btn-secondary w-full text-sm"
+            onClick={() => {
+              setEmail('learner1@lms.com');
+              setPassword('learner@123');
+            }}
+          >
+            Fill Test Credentials
+          </button>
+        </div>
       </div>
     </div>
   );

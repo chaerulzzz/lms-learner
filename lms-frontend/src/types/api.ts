@@ -1,20 +1,23 @@
 export interface ApiResponse<T> {
+  code: number;
+  message: string;
   data: T;
-  message?: string;
-  success: boolean;
 }
 
 export interface PaginatedResponse<T> {
+  code: number;
+  message: string;
   data: T[];
-  total: number;
-  page: number;
-  pageSize: number;
-  totalPages: number;
+  pagination: {
+    page: number;
+    page_size: number;
+    total: number;
+    total_page: number;
+  };
 }
 
 export interface ApiError {
-  error: string;
+  code: number;
   message: string;
-  statusCode: number;
-  timestamp: Date;
+  error: string;
 }
