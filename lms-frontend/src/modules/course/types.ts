@@ -39,3 +39,19 @@ export interface CourseDetail {
   lessons_count: number;
   completed_lessons: number;
 }
+
+export interface LessonProgressDetail {
+  lesson_id: number;
+  lesson_title: string;
+  watched_percentage: number;
+  watched_duration: number;
+  total_duration: number;
+  is_completed: boolean;
+  materials: {
+    id: number;
+    type: string;
+    title: string;
+    url: string;
+    duration: number;
+  }[];
+}

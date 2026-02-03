@@ -1,30 +1,24 @@
 import { Link } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
-import { useDashboard } from '@/hooks/useDashboard';
+import { useAuth } from '@/modules/auth';
+import { useDashboard } from './DashboardProvider';
+import { Avatar, ErrorState, ProgressBar, StatCardSkeleton, CardSkeleton } from '@/shared/components';
 import { getProgressColor, getProgressTextColor } from '@/lib/utils';
 
-export default function Dashboard() {
+export default function DashboardView() {
   const { user } = useAuth();
-  const { data: dashboard, isLoading, isError } = useDashboard();
+  const { dashboard, isLoading, isError } = useDashboard();
 
   if (isLoading) {
     return (
       <div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="card">
-              <div className="skeleton h-4 w-24 mb-2" />
-              <div className="skeleton h-8 w-16" />
-            </div>
+            <StatCardSkeleton key={i} />
           ))}
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="card">
-              <div className="skeleton h-40 rounded-lg mb-3" />
-              <div className="skeleton h-4 w-3/4 mb-2" />
-              <div className="skeleton h-3 w-1/2" />
-            </div>
+            <CardSkeleton key={i} />
           ))}
         </div>
       </div>
@@ -32,17 +26,7 @@ export default function Dashboard() {
   }
 
   if (isError) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="card max-w-md w-full text-center">
-          <h2 className="text-xl font-bold text-status-error mb-2">Failed to load dashboard</h2>
-          <p className="text-neutral-dark mb-4">Something went wrong. Please try again.</p>
-          <button className="btn-primary" onClick={() => window.location.reload()}>
-            Retry
-          </button>
-        </div>
-      </div>
-    );
+    return <ErrorState title="Failed to load dashboard" />;
   }
 
   return (
@@ -83,9 +67,7 @@ export default function Dashboard() {
       {/* User Profile Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="card flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-primary-red flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
-            {user?.first_name?.[0] || 'U'}
-          </div>
+          <Avatar name={user?.first_name || 'U'} size="lg" />
           <div>
             <p className="font-semibold">{user?.full_name || 'User'}</p>
             <p className="text-sm text-neutral-dark">{user?.department || 'No department'}</p>
@@ -153,12 +135,7 @@ export default function Dashboard() {
               <p className="text-sm text-neutral-dark mb-3 truncate-2-lines">
                 {course.description}
               </p>
-              <div className="progress-bar mb-2">
-                <div
-                  className={`progress-fill ${getProgressColor(course.completion_percentage)}`}
-                  style={{ width: `${course.completion_percentage}%` }}
-                />
-              </div>
+              <ProgressBar percentage={course.completion_percentage} className="mb-2" />
               <div className="flex items-center justify-between mt-2">
                 <p className="text-sm text-neutral-dark">{course.completion_percentage}%</p>
                 <Link to={`/courses/${course.id}`} className="btn-primary text-sm px-3 py-1">

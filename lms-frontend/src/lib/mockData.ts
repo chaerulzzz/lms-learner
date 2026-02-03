@@ -1,7 +1,7 @@
-import type { User, AuthResponse } from '@/types/auth';
-import type { DashboardData } from '@/types/dashboard';
-import type { LearningPathSummary, LearningPathDetail } from '@/types/learningPath';
-import type { CourseDetail } from '@/types/courseDetail';
+import type { User, AuthResponse } from '@/modules/auth/types';
+import type { DashboardData } from '@/modules/dashboard/types';
+import type { LearningPathSummary, LearningPathDetail } from '@/modules/learning/types';
+import type { CourseDetail } from '@/modules/course/types';
 
 export const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
 

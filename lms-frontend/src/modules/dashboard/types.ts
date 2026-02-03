@@ -1,4 +1,4 @@
-import type { User } from './auth';
+import type { User } from '@/modules/auth/types';
 
 export interface DashboardCourse {
   id: number;

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
-import { useLearningPaths } from '@/hooks/useLearningPaths';
-import { getProgressColor, getProgressTextColor } from '@/lib/utils';
+import { useLearning } from './LearningProvider';
+import { ErrorState, StatusBadge, ProgressBar, Skeleton } from '@/shared/components';
 
 function getDueDateInfo(dueDate: string | null): { label: string; className: string } | null {
   if (!dueDate) return null;
@@ -21,34 +21,21 @@ function getDueDateInfo(dueDate: string | null): { label: string; className: str
   return { label: `Due in ${diffDays} days`, className: 'text-neutral-dark' };
 }
 
-function getStatusBadge(status: string) {
-  switch (status) {
-    case 'completed':
-      return <span className="badge bg-green-100 text-green-800">Completed</span>;
-    case 'in_progress':
-      return <span className="badge bg-blue-100 text-blue-800">In Progress</span>;
-    case 'overdue':
-      return <span className="badge bg-red-100 text-red-800">Overdue</span>;
-    default:
-      return <span className="badge bg-gray-100 text-gray-800">Not Started</span>;
-  }
-}
+export default function LearningPathsView() {
+  const { paths, isPathsLoading, isPathsError } = useLearning();
 
-export default function LearningPaths() {
-  const { data: paths, isLoading, isError } = useLearningPaths();
-
-  if (isLoading) {
+  if (isPathsLoading) {
     return (
       <div>
-        <div className="skeleton h-8 w-48 mb-6" />
+        <Skeleton className="h-8 w-48 mb-6" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[...Array(3)].map((_, i) => (
             <div key={i} className="card">
-              <div className="skeleton h-5 w-3/4 mb-3" />
-              <div className="skeleton h-3 w-full mb-2" />
-              <div className="skeleton h-3 w-2/3 mb-4" />
-              <div className="skeleton h-2 w-full mb-3" />
-              <div className="skeleton h-4 w-20" />
+              <Skeleton className="h-5 w-3/4 mb-3" />
+              <Skeleton className="h-3 w-full mb-2" />
+              <Skeleton className="h-3 w-2/3 mb-4" />
+              <Skeleton className="h-2 w-full mb-3" />
+              <Skeleton className="h-4 w-20" />
             </div>
           ))}
         </div>
@@ -56,21 +43,10 @@ export default function LearningPaths() {
     );
   }
 
-  if (isError) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="card max-w-md w-full text-center">
-          <h2 className="text-xl font-bold text-status-error mb-2">Failed to load learning paths</h2>
-          <p className="text-neutral-dark mb-4">Something went wrong. Please try again.</p>
-          <button className="btn-primary" onClick={() => window.location.reload()}>
-            Retry
-          </button>
-        </div>
-      </div>
-    );
+  if (isPathsError) {
+    return <ErrorState title="Failed to load learning paths" />;
   }
 
-  // Sort: overdue first, then by due date (earliest first), then no-date paths last
   const sorted = [...(paths || [])].sort((a, b) => {
     if (a.status === 'completed' && b.status !== 'completed') return 1;
     if (b.status === 'completed' && a.status !== 'completed') return -1;
@@ -110,27 +86,16 @@ export default function LearningPaths() {
               </p>
 
               <div className="flex items-center gap-2 mb-3 text-sm text-neutral-dark">
-                {getStatusBadge(path.status)}
+                <StatusBadge status={path.status} />
                 <span>{path.course_count} course{path.course_count !== 1 ? 's' : ''}</span>
               </div>
 
-              {/* Progress */}
-              <div className="progress-bar mb-2">
-                <div
-                  className={`progress-fill ${getProgressColor(path.completion_percentage)}`}
-                  style={{ width: `${path.completion_percentage}%` }}
-                />
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className={getProgressTextColor(path.completion_percentage)}>
-                  {path.completion_percentage}% Complete
-                </span>
-                <span className="text-neutral-dark">
-                  {path.completed_course_count}/{path.course_count} courses
-                </span>
-              </div>
+              <ProgressBar
+                percentage={path.completion_percentage}
+                showText
+                textSuffix={`${path.completed_course_count}/${path.course_count} courses`}
+              />
 
-              {/* Due date */}
               {dueDateInfo && (
                 <p className={`text-sm mt-3 ${dueDateInfo.className}`}>
                   {dueDateInfo.label}

@@ -1,7 +1,6 @@
-import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { useCourse } from '@/hooks/useCourse';
-import { getProgressColor, getProgressTextColor, formatDuration } from '@/lib/utils';
+import { useCourse } from './CourseProvider';
+import { ErrorState, Breadcrumb, ProgressBar, DetailPageSkeleton, StatusBadge } from '@/shared/components';
+import { getProgressColor, formatDuration } from '@/lib/utils';
 
 function getLessonIcon(type: string) {
   switch (type) {
@@ -35,63 +34,36 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export default function CourseDetail() {
-  const { courseId } = useParams<{ courseId: string }>();
-  const { data: course, isLoading, isError } = useCourse(courseId || '');
-  const [expandedModules, setExpandedModules] = useState<Set<number>>(new Set());
-
-  const toggleModule = (moduleId: number) => {
-    setExpandedModules((prev) => {
-      const next = new Set(prev);
-      if (next.has(moduleId)) {
-        next.delete(moduleId);
-      } else {
-        next.add(moduleId);
-      }
-      return next;
-    });
-  };
-
-  const expandAll = () => {
-    if (course) {
-      setExpandedModules(new Set(course.modules.map((m) => m.id)));
-    }
-  };
-
-  const collapseAll = () => {
-    setExpandedModules(new Set());
-  };
+export default function CourseDetailView() {
+  const {
+    course,
+    isLoading,
+    isError,
+    enroll,
+    isEnrolling,
+    enrollError,
+    enrollSuccess,
+    selectedLessonId,
+    setSelectedLessonId,
+    lessonProgress,
+    expandedModules,
+    toggleModule,
+    expandAll,
+    collapseAll,
+  } = useCourse();
 
   if (isLoading) {
-    return (
-      <div>
-        <div className="skeleton h-4 w-40 mb-4" />
-        <div className="skeleton h-8 w-96 mb-2" />
-        <div className="skeleton h-4 w-full mb-6" />
-        <div className="skeleton h-2 w-full mb-8" />
-        <div className="space-y-3">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="card">
-              <div className="skeleton h-5 w-1/2 mb-2" />
-              <div className="skeleton h-3 w-20" />
-            </div>
-          ))}
-        </div>
-      </div>
-    );
+    return <DetailPageSkeleton />;
   }
 
   if (isError || !course) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="card max-w-md w-full text-center">
-          <h2 className="text-xl font-bold text-status-error mb-2">Course not found</h2>
-          <p className="text-neutral-dark mb-4">This course could not be loaded.</p>
-          <Link to="/learning-paths" className="btn-primary inline-block">
-            Back to Learning Paths
-          </Link>
-        </div>
-      </div>
+      <ErrorState
+        title="Course not found"
+        message="This course could not be loaded."
+        actionLabel="Back to Learning Paths"
+        actionHref="/learning-paths"
+      />
     );
   }
 
@@ -99,14 +71,12 @@ export default function CourseDetail() {
 
   return (
     <div>
-      {/* Breadcrumb */}
-      <nav className="text-sm text-neutral-dark mb-4">
-        <Link to="/learning-paths" className="hover:text-primary-red transition-colors">
-          Learning Paths
-        </Link>
-        <span className="mx-2">/</span>
-        <span className="font-medium text-gray-900">{course.title}</span>
-      </nav>
+      <Breadcrumb
+        items={[
+          { label: 'Learning Paths', href: '/learning-paths' },
+          { label: course.title },
+        ]}
+      />
 
       {/* Course Header */}
       <div className="card mb-6">
@@ -125,15 +95,35 @@ export default function CourseDetail() {
           </div>
         </div>
 
-        <div className="progress-bar mt-4 mb-2">
-          <div
-            className={`progress-fill ${getProgressColor(course.completion_percentage)}`}
-            style={{ width: `${course.completion_percentage}%` }}
+        {/* Enroll button or progress */}
+        {course.status === 'not_started' && !course.enrolled_at ? (
+          <div className="mt-4">
+            <button
+              className="btn-primary px-6 py-2"
+              disabled={isEnrolling}
+              onClick={enroll}
+            >
+              {isEnrolling ? 'Enrolling...' : 'Enroll in Course'}
+            </button>
+            {enrollError && (
+              <p className="text-sm text-status-error mt-2">
+                Failed to enroll. You may already be enrolled in this course.
+              </p>
+            )}
+            {enrollSuccess && (
+              <p className="text-sm text-status-success mt-2">
+                Enrolled successfully!
+              </p>
+            )}
+          </div>
+        ) : (
+          <ProgressBar
+            percentage={course.completion_percentage}
+            showText
+            textSuffix={`${course.completed_lessons} of ${course.lessons_count} lessons finished`}
+            className="mt-4"
           />
-        </div>
-        <p className={`text-sm ${getProgressTextColor(course.completion_percentage)}`}>
-          {course.completion_percentage}% Complete — {course.completed_lessons} of {course.lessons_count} lessons finished
-        </p>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -159,7 +149,6 @@ export default function CourseDetail() {
 
                 return (
                   <div key={module.id} className="card p-0 overflow-hidden">
-                    {/* Module header (clickable) */}
                     <button
                       onClick={() => toggleModule(module.id)}
                       className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-gray-50 transition-colors"
@@ -183,41 +172,62 @@ export default function CourseDetail() {
                       </span>
                     </button>
 
-                    {/* Lessons (expanded) */}
                     {isExpanded && (
                       <div className="border-t border-gray-100">
                         {module.lessons
                           .sort((a, b) => a.order - b.order)
                           .map((lesson) => (
-                            <div
-                              key={lesson.id}
-                              className="px-6 py-3 flex items-center gap-3 border-b border-gray-50 last:border-b-0 hover:bg-gray-50"
-                            >
-                              {/* Completion check */}
-                              {lesson.is_completed ? (
-                                <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                              ) : (
-                                <div className="w-5 h-5 rounded-full border-2 border-gray-300 flex-shrink-0" />
+                            <div key={lesson.id}>
+                              <button
+                                onClick={() => setSelectedLessonId(
+                                  selectedLessonId === String(lesson.id) ? null : String(lesson.id)
+                                )}
+                                className="w-full px-6 py-3 flex items-center gap-3 border-b border-gray-50 last:border-b-0 hover:bg-gray-50 text-left"
+                              >
+                                {lesson.is_completed ? (
+                                  <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                ) : (
+                                  <div className="w-5 h-5 rounded-full border-2 border-gray-300 flex-shrink-0" />
+                                )}
+
+                                <span className="text-neutral-dark flex-shrink-0">
+                                  {getLessonIcon(lesson.type)}
+                                </span>
+
+                                <div className="flex-1 min-w-0">
+                                  <p className={`text-sm ${lesson.is_completed ? 'text-neutral-dark line-through' : 'text-gray-900'}`}>
+                                    {lesson.title}
+                                  </p>
+                                </div>
+
+                                <span className="text-xs text-neutral-dark flex-shrink-0">
+                                  {lesson.duration}m
+                                </span>
+                              </button>
+
+                              {selectedLessonId === String(lesson.id) && lessonProgress && (
+                                <div className="px-6 py-3 bg-gray-50 border-b border-gray-100">
+                                  <div className="flex items-center gap-4 text-sm">
+                                    <span className="text-neutral-dark">
+                                      Watched: {lessonProgress.watched_percentage}%
+                                    </span>
+                                    <span className="text-neutral-dark">
+                                      {Math.round(lessonProgress.watched_duration / 60)}m / {Math.round(lessonProgress.total_duration / 60)}m
+                                    </span>
+                                    {lessonProgress.is_completed && (
+                                      <StatusBadge status="completed" />
+                                    )}
+                                  </div>
+                                  <div className="progress-bar mt-2">
+                                    <div
+                                      className={`progress-fill ${getProgressColor(lessonProgress.watched_percentage)}`}
+                                      style={{ width: `${lessonProgress.watched_percentage}%` }}
+                                    />
+                                  </div>
+                                </div>
                               )}
-
-                              {/* Lesson type icon */}
-                              <span className="text-neutral-dark flex-shrink-0">
-                                {getLessonIcon(lesson.type)}
-                              </span>
-
-                              {/* Lesson info */}
-                              <div className="flex-1 min-w-0">
-                                <p className={`text-sm ${lesson.is_completed ? 'text-neutral-dark line-through' : 'text-gray-900'}`}>
-                                  {lesson.title}
-                                </p>
-                              </div>
-
-                              {/* Duration */}
-                              <span className="text-xs text-neutral-dark flex-shrink-0">
-                                {lesson.duration}m
-                              </span>
                             </div>
                           ))}
                       </div>
@@ -228,7 +238,7 @@ export default function CourseDetail() {
           </div>
         </div>
 
-        {/* Sidebar: Materials */}
+        {/* Sidebar */}
         <div>
           <h2 className="text-xl font-bold mb-4">Materials</h2>
           {course.materials.length > 0 ? (
@@ -258,7 +268,6 @@ export default function CourseDetail() {
             </div>
           )}
 
-          {/* Course info card */}
           <div className="card mt-4">
             <h3 className="font-semibold mb-3">Course Info</h3>
             <dl className="space-y-2 text-sm">

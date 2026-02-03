@@ -1,9 +1,10 @@
+import React, { createContext, useContext } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { queryKeys, queryConfigs } from '@/lib/queryClient';
 import { mockDashboardData, USE_MOCK } from '@/lib/mockData';
 import type { ApiResponse } from '@/types/api';
-import type { DashboardData, DashboardCourse } from '@/types/dashboard';
+import type { DashboardData, DashboardCourse } from './types';
 
 // Shape returned by the real backend API
 interface ApiEnrollment {
@@ -54,7 +55,7 @@ function mapEnrollmentToCourse(enrollment: ApiEnrollment): DashboardCourse {
 
 function transformDashboardResponse(raw: ApiDashboardResponse): DashboardData {
   return {
-    user: null as unknown as DashboardData['user'], // user comes from AuthContext, not dashboard
+    user: null as unknown as DashboardData['user'],
     mandatory_courses: (raw.mandatory_courses || []).map(mapEnrollmentToCourse),
     in_progress_courses: (raw.in_progress_courses || []).map(mapEnrollmentToCourse),
     completed_courses_count: raw.completed_courses || 0,
@@ -76,10 +77,32 @@ async function fetchDashboard(): Promise<DashboardData> {
   return transformDashboardResponse(response.data);
 }
 
-export function useDashboard() {
-  return useQuery<DashboardData>({
+interface DashboardContextType {
+  dashboard: DashboardData | undefined;
+  isLoading: boolean;
+  isError: boolean;
+}
+
+const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
+
+export function DashboardProvider({ children }: { children: React.ReactNode }) {
+  const { data, isLoading, isError } = useQuery<DashboardData>({
     queryKey: queryKeys.dashboard,
     queryFn: fetchDashboard,
     ...queryConfigs.dashboard,
   });
+
+  return (
+    <DashboardContext.Provider value={{ dashboard: data, isLoading, isError }}>
+      {children}
+    </DashboardContext.Provider>
+  );
+}
+
+export function useDashboard() {
+  const context = useContext(DashboardContext);
+  if (context === undefined) {
+    throw new Error('useDashboard must be used within a DashboardProvider');
+  }
+  return context;
 }

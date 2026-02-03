@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/modules/auth';
+import { Avatar } from '@/shared/components';
 
 const navItems = [
   { label: 'Dashboard', path: '/dashboard' },
@@ -62,14 +63,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </nav>
           </div>
           <div className="flex items-center gap-4">
-            <div className="hidden sm:flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-primary-red flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-                {user?.first_name?.[0] || 'U'}
-              </div>
+            <Link to="/profile" className="hidden sm:flex items-center gap-2 hover:opacity-80 transition-opacity">
+              <Avatar name={user?.first_name || 'U'} size="sm" />
               <span className="text-sm text-neutral-dark">
                 {user?.first_name || 'User'}
               </span>
-            </div>
+            </Link>
             <button onClick={logout} className="btn-secondary text-sm px-3 py-1">
               Logout
             </button>
@@ -83,6 +82,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <div className="fixed inset-0 bg-black/50" onClick={() => setSidebarOpen(false)} />
           <div className="fixed left-0 top-0 bottom-0 w-64 bg-white shadow-lg pt-20 px-4">
             <nav className="flex flex-col gap-1">
+              <Link
+                to="/profile"
+                onClick={() => setSidebarOpen(false)}
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  location.pathname === '/profile'
+                    ? 'bg-primary-red text-white'
+                    : 'text-neutral-dark hover:bg-gray-100'
+                }`}
+              >
+                Profile
+              </Link>
               {navItems.map((item) => {
                 const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
                 return (

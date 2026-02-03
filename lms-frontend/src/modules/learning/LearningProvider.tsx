@@ -1,9 +1,11 @@
+import React, { createContext, useContext } from 'react';
+import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { queryKeys, queryConfigs } from '@/lib/queryClient';
 import { mockLearningPaths, mockLearningPathDetails, USE_MOCK } from '@/lib/mockData';
 import type { ApiResponse } from '@/types/api';
-import type { LearningPathSummary, LearningPathDetail, LearningPathCourse } from '@/types/learningPath';
+import type { LearningPathSummary, LearningPathDetail, LearningPathCourse } from './types';
 
 // Backend API shapes
 interface ApiEnrollment {
@@ -34,36 +36,30 @@ interface ApiCourse {
   created_at: string;
 }
 
-/**
- * The backend has no /learning-paths endpoint.
- * We construct virtual learning paths by grouping courses:
- *   - "Mandatory Learning Path" from mandatory enrollments
- *   - "Elective Courses" from non-mandatory enrolled courses
- * and enriching with data from /public/courses.
- */
 async function fetchLearningPaths(): Promise<LearningPathSummary[]> {
   if (USE_MOCK) {
     return mockLearningPaths;
   }
 
-  // Fetch all courses and mandatory enrollments in parallel
-  const [coursesRes, mandatoryRes, inProgressRes] = await Promise.all([
+  const [coursesRes, mandatoryRes, inProgressRes, completedRes] = await Promise.all([
     api.get<ApiResponse<ApiCourse[]> & { pagination: unknown }>('/public/courses?page_size=100'),
     api.get<ApiResponse<ApiEnrollment[]>>('/courses/mandatory'),
     api.get<ApiResponse<ApiEnrollment[]>>('/courses/in-progress'),
+    api.get<ApiResponse<ApiEnrollment[]>>('/courses/completed').catch(() => ({ data: [] })),
   ]);
 
   const allCourses: ApiCourse[] = coursesRes.data || [];
   const mandatoryEnrollments: ApiEnrollment[] = mandatoryRes.data || [];
   const inProgressEnrollments: ApiEnrollment[] = inProgressRes.data || [];
+  const completedEnrollments: ApiEnrollment[] = completedRes.data || [];
 
   const courseMap = new Map(allCourses.map((c) => [c.id, c]));
   const enrollmentMap = new Map([
     ...mandatoryEnrollments.map((e) => [e.course_id, e] as const),
     ...inProgressEnrollments.map((e) => [e.course_id, e] as const),
+    ...completedEnrollments.map((e) => [e.course_id, e] as const),
   ]);
 
-  // Build mandatory path
   const mandatoryCourses = allCourses.filter((c) => c.is_mandatory);
   const mandatoryCompleted = mandatoryCourses.filter((c) => {
     const enrollment = enrollmentMap.get(c.id);
@@ -73,7 +69,6 @@ async function fetchLearningPaths(): Promise<LearningPathSummary[]> {
     ? Math.round((mandatoryCompleted / mandatoryCourses.length) * 100)
     : 0;
 
-  // Find earliest due date among mandatory courses
   const dueDates = mandatoryCourses
     .map((c) => c.mandatory_due_date)
     .filter((d): d is string => !!d);
@@ -94,7 +89,6 @@ async function fetchLearningPaths(): Promise<LearningPathSummary[]> {
     assigned_at: mandatoryCourses[0]?.created_at || new Date().toISOString(),
   };
 
-  // Build elective path from non-mandatory enrolled courses
   const electiveEnrollments = inProgressEnrollments.filter((e) => {
     const course = courseMap.get(e.course_id);
     return course && !course.is_mandatory;
@@ -134,20 +128,22 @@ async function fetchLearningPath(id: string): Promise<LearningPathDetail> {
     return detail;
   }
 
-  // Fetch all courses and enrollments in parallel
-  const [coursesRes, mandatoryRes, inProgressRes] = await Promise.all([
+  const [coursesRes, mandatoryRes, inProgressRes, completedRes] = await Promise.all([
     api.get<ApiResponse<ApiCourse[]> & { pagination: unknown }>('/public/courses?page_size=100'),
     api.get<ApiResponse<ApiEnrollment[]>>('/courses/mandatory'),
     api.get<ApiResponse<ApiEnrollment[]>>('/courses/in-progress'),
+    api.get<ApiResponse<ApiEnrollment[]>>('/courses/completed').catch(() => ({ data: [] })),
   ]);
 
   const allCourses: ApiCourse[] = coursesRes.data || [];
   const mandatoryEnrollments: ApiEnrollment[] = mandatoryRes.data || [];
   const inProgressEnrollments: ApiEnrollment[] = inProgressRes.data || [];
+  const completedEnrollments: ApiEnrollment[] = completedRes.data || [];
 
   const enrollmentMap = new Map([
     ...mandatoryEnrollments.map((e) => [e.course_id, e] as const),
     ...inProgressEnrollments.map((e) => [e.course_id, e] as const),
+    ...completedEnrollments.map((e) => [e.course_id, e] as const),
   ]);
 
   const pathId = Number(id);
@@ -155,7 +151,6 @@ async function fetchLearningPath(id: string): Promise<LearningPathDetail> {
   let pathSummary: Omit<LearningPathSummary, 'course_count' | 'completed_course_count' | 'completion_percentage' | 'status'>;
 
   if (pathId === 1) {
-    // Mandatory path
     filteredCourses = allCourses.filter((c) => c.is_mandatory);
     const dueDates = filteredCourses
       .map((c) => c.mandatory_due_date)
@@ -169,7 +164,6 @@ async function fetchLearningPath(id: string): Promise<LearningPathDetail> {
       assigned_at: filteredCourses[0]?.created_at || new Date().toISOString(),
     };
   } else if (pathId === 2) {
-    // Elective path
     filteredCourses = allCourses.filter((c) => {
       if (c.is_mandatory) return false;
       return enrollmentMap.has(c.id);
@@ -203,7 +197,7 @@ async function fetchLearningPath(id: string): Promise<LearningPathDetail> {
       completion_percentage: progress,
       status,
       order: index + 1,
-      lessons_count: 0, // API doesn't expose lessons
+      lessons_count: 0,
       completed_lessons: 0,
     };
   });
@@ -224,18 +218,52 @@ async function fetchLearningPath(id: string): Promise<LearningPathDetail> {
   };
 }
 
-export function useLearningPaths() {
-  return useQuery<LearningPathSummary[]>({
+interface LearningContextType {
+  paths: LearningPathSummary[] | undefined;
+  isPathsLoading: boolean;
+  isPathsError: boolean;
+  pathDetail: LearningPathDetail | undefined;
+  isDetailLoading: boolean;
+  isDetailError: boolean;
+}
+
+const LearningContext = createContext<LearningContextType | undefined>(undefined);
+
+export function LearningProvider({ children }: { children: React.ReactNode }) {
+  const { pathId } = useParams<{ pathId: string }>();
+
+  const pathsQuery = useQuery<LearningPathSummary[]>({
     queryKey: queryKeys.learningPaths,
     queryFn: fetchLearningPaths,
     ...queryConfigs.dashboard,
   });
+
+  const detailQuery = useQuery<LearningPathDetail>({
+    queryKey: queryKeys.learningPath(pathId || ''),
+    queryFn: () => fetchLearningPath(pathId!),
+    enabled: !!pathId,
+  });
+
+  return (
+    <LearningContext.Provider
+      value={{
+        paths: pathsQuery.data,
+        isPathsLoading: pathsQuery.isLoading,
+        isPathsError: pathsQuery.isError,
+        pathDetail: detailQuery.data,
+        isDetailLoading: detailQuery.isLoading,
+        isDetailError: detailQuery.isError,
+      }}
+    >
+      {children}
+    </LearningContext.Provider>
+  );
 }
 
-export function useLearningPath(id: string) {
-  return useQuery<LearningPathDetail>({
-    queryKey: queryKeys.learningPath(id),
-    queryFn: () => fetchLearningPath(id),
-    enabled: !!id,
-  });
+export function useLearning() {
+  const context = useContext(LearningContext);
+  if (context === undefined) {
+    throw new Error('useLearning must be used within a LearningProvider');
+  }
+  return context;
 }

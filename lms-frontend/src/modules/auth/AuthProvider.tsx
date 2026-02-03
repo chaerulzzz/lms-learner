@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import type { User, LoginCredentials } from '@/types/auth';
+import type { User, LoginCredentials } from './types';
 import type { ApiResponse } from '@/types/api';
 import { api } from '@/lib/api';
 import { mockAuthResponse, MOCK_TOKEN, USE_MOCK } from '@/lib/mockData';
@@ -8,6 +8,7 @@ interface AuthContextType {
   user: User | null;
   login: (credentials: LoginCredentials) => Promise<void>;
   logout: () => void;
+  updateUser: (data: Partial<User>) => void;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
@@ -74,12 +75,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setError(null);
   }, []);
 
+  const updateUser = useCallback((data: Partial<User>) => {
+    setUser((prev) => (prev ? { ...prev, ...data } : prev));
+  }, []);
+
   return (
     <AuthContext.Provider
       value={{
         user,
         login,
         logout,
+        updateUser,
         isAuthenticated: !!user,
         isLoading,
         error,
@@ -91,10 +97,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function useAuthContext() {
+export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuthContext must be used within an AuthProvider');
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 }
