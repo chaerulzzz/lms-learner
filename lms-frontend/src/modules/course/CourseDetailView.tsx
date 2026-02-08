@@ -1,4 +1,7 @@
+import { useNavigate } from 'react-router-dom';
 import { useCourse } from './CourseProvider';
+import VideoPlayer from './VideoPlayer';
+import CourseReviewSection from './CourseReviewSection';
 import { ErrorState, Breadcrumb, ProgressBar, DetailPageSkeleton, StatusBadge } from '@/shared/components';
 import { getProgressColor, formatDuration } from '@/lib/utils';
 
@@ -35,6 +38,7 @@ function formatFileSize(bytes: number): string {
 }
 
 export default function CourseDetailView() {
+  const navigate = useNavigate();
   const {
     course,
     isLoading,
@@ -179,9 +183,15 @@ export default function CourseDetailView() {
                           .map((lesson) => (
                             <div key={lesson.id}>
                               <button
-                                onClick={() => setSelectedLessonId(
-                                  selectedLessonId === String(lesson.id) ? null : String(lesson.id)
-                                )}
+                                onClick={() => {
+                                  if (lesson.type === 'quiz') {
+                                    navigate(`/quizzes/${lesson.id}`);
+                                  } else {
+                                    setSelectedLessonId(
+                                      selectedLessonId === String(lesson.id) ? null : String(lesson.id)
+                                    );
+                                  }
+                                }}
                                 className="w-full px-6 py-3 flex items-center gap-3 border-b border-gray-50 last:border-b-0 hover:bg-gray-50 text-left"
                               >
                                 {lesson.is_completed ? (
@@ -207,25 +217,39 @@ export default function CourseDetailView() {
                                 </span>
                               </button>
 
-                              {selectedLessonId === String(lesson.id) && lessonProgress && (
-                                <div className="px-6 py-3 bg-gray-50 border-b border-gray-100">
-                                  <div className="flex items-center gap-4 text-sm">
-                                    <span className="text-neutral-dark">
-                                      Watched: {lessonProgress.watched_percentage}%
-                                    </span>
-                                    <span className="text-neutral-dark">
-                                      {Math.round(lessonProgress.watched_duration / 60)}m / {Math.round(lessonProgress.total_duration / 60)}m
-                                    </span>
-                                    {lessonProgress.is_completed && (
-                                      <StatusBadge status="completed" />
-                                    )}
-                                  </div>
-                                  <div className="progress-bar mt-2">
-                                    <div
-                                      className={`progress-fill ${getProgressColor(lessonProgress.watched_percentage)}`}
-                                      style={{ width: `${lessonProgress.watched_percentage}%` }}
+                              {selectedLessonId === String(lesson.id) && (
+                                <div className="px-6 py-4 bg-gray-50 border-b border-gray-100">
+                                  {lesson.type === 'video' && lesson.video_url ? (
+                                    <VideoPlayer
+                                      lessonId={lesson.id}
+                                      videoUrl={lesson.video_url}
+                                      lessonTitle={lesson.title}
                                     />
-                                  </div>
+                                  ) : lessonProgress ? (
+                                    <>
+                                      <div className="flex items-center gap-4 text-sm">
+                                        <span className="text-neutral-dark">
+                                          Watched: {lessonProgress.watched_percentage}%
+                                        </span>
+                                        <span className="text-neutral-dark">
+                                          {Math.round(lessonProgress.watched_duration / 60)}m / {Math.round(lessonProgress.total_duration / 60)}m
+                                        </span>
+                                        {lessonProgress.is_completed && (
+                                          <StatusBadge status="completed" />
+                                        )}
+                                      </div>
+                                      <div className="progress-bar mt-2">
+                                        <div
+                                          className={`progress-fill ${getProgressColor(lessonProgress.watched_percentage)}`}
+                                          style={{ width: `${lessonProgress.watched_percentage}%` }}
+                                        />
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <p className="text-sm text-neutral-dark">
+                                      {lesson.type === 'document' ? 'Document lesson' : 'Lesson content'}
+                                    </p>
+                                  )}
                                 </div>
                               )}
                             </div>
@@ -298,6 +322,11 @@ export default function CourseDetailView() {
             </dl>
           </div>
         </div>
+      </div>
+
+      {/* Reviews Section */}
+      <div className="mt-6">
+        <CourseReviewSection />
       </div>
     </div>
   );

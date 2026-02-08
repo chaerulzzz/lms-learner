@@ -1,4 +1,5 @@
 import { useProfile } from './ProfileProvider';
+import UserStatsSection from './UserStatsSection';
 import { Alert, FormField } from '@/shared/components';
 
 export default function ProfileView() {
@@ -21,6 +22,9 @@ export default function ProfileView() {
   return (
     <div className="max-w-2xl mx-auto space-y-8">
       <h1 className="text-2xl font-bold text-neutral-darker">Profile Settings</h1>
+
+      {/* User Statistics Section */}
+      <UserStatsSection />
 
       {/* Profile Info Section */}
       <div className="card">

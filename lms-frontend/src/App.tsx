@@ -3,7 +3,12 @@ import { AuthProvider, useAuth, LoginView, RegisterView } from '@/modules/auth';
 import { DashboardProvider, DashboardView } from '@/modules/dashboard';
 import { LearningProvider, LearningPathsView, LearningPathDetailView } from '@/modules/learning';
 import { CourseProvider, CourseDetailView } from '@/modules/course';
-import { ProfileProvider, ProfileView } from '@/modules/profile';
+import { ProfileProvider, ProfileView, PublicProfileView } from '@/modules/profile';
+import { QuizProvider, QuizView } from '@/modules/quiz';
+import { CatalogProvider, CatalogView } from '@/modules/catalog';
+import { GamificationProvider, GamificationView } from '@/modules/gamification';
+import { NotificationProvider, NotificationListView, NotificationSettingsView } from '@/modules/notification';
+import { CertificateProvider, CertificateLibraryView, CertificateDetailView } from '@/modules/certificate';
 import AppLayout from '@/shared/layout/AppLayout';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -23,7 +28,9 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function ProtectedLayout({ children }: { children: React.ReactNode }) {
   return (
     <ProtectedRoute>
-      <AppLayout>{children}</AppLayout>
+      <NotificationProvider>
+        <AppLayout>{children}</AppLayout>
+      </NotificationProvider>
     </ProtectedRoute>
   );
 }
@@ -58,6 +65,46 @@ function App() {
           <Route path="/profile" element={
             <ProtectedLayout>
               <ProfileProvider><ProfileView /></ProfileProvider>
+            </ProtectedLayout>
+          } />
+          <Route path="/users/:userId" element={
+            <ProtectedLayout>
+              <PublicProfileView />
+            </ProtectedLayout>
+          } />
+          <Route path="/quizzes/:quizId" element={
+            <ProtectedLayout>
+              <QuizProvider><QuizView /></QuizProvider>
+            </ProtectedLayout>
+          } />
+          <Route path="/catalog" element={
+            <ProtectedLayout>
+              <CatalogProvider><CatalogView /></CatalogProvider>
+            </ProtectedLayout>
+          } />
+          <Route path="/achievements" element={
+            <ProtectedLayout>
+              <GamificationProvider><GamificationView /></GamificationProvider>
+            </ProtectedLayout>
+          } />
+          <Route path="/notifications" element={
+            <ProtectedLayout>
+              <NotificationListView />
+            </ProtectedLayout>
+          } />
+          <Route path="/notifications/settings" element={
+            <ProtectedLayout>
+              <NotificationSettingsView />
+            </ProtectedLayout>
+          } />
+          <Route path="/certificates" element={
+            <ProtectedLayout>
+              <CertificateProvider><CertificateLibraryView /></CertificateProvider>
+            </ProtectedLayout>
+          } />
+          <Route path="/certificates/:certificateId" element={
+            <ProtectedLayout>
+              <CertificateProvider><CertificateDetailView /></CertificateProvider>
             </ProtectedLayout>
           } />
           <Route path="/" element={<Navigate to="/dashboard" />} />

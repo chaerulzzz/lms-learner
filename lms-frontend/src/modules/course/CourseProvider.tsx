@@ -5,7 +5,7 @@ import { api } from '@/lib/api';
 import { queryKeys } from '@/lib/queryClient';
 import { mockCourseDetails, USE_MOCK } from '@/lib/mockData';
 import type { ApiResponse } from '@/types/api';
-import type { CourseDetail, CourseModule, CourseLesson, CourseMaterialItem, LessonProgressDetail } from './types';
+import type { CourseDetail, CourseModule, CourseLesson, CourseMaterialItem, LessonProgressDetail, CourseReview, SubmitReviewData, CourseReviewStats } from './types';
 
 // API shapes
 interface ApiCourseMaterial {
@@ -214,6 +214,158 @@ async function fetchLessonProgress(lessonId: string): Promise<LessonProgressDeta
   }
 }
 
+interface TrackProgressPayload {
+  course_id: number;
+  lesson_id: number;
+  watched_duration: number;
+  total_duration: number;
+}
+
+interface TrackProgressResponse {
+  id: number;
+  user_id: number;
+  course_id: number;
+  lesson_id: number;
+  watched_percentage: number;
+  watched_duration: number;
+  total_duration: number;
+  is_completed: boolean;
+  updated_at: string;
+}
+
+async function trackVideoProgress(payload: TrackProgressPayload): Promise<TrackProgressResponse> {
+  if (USE_MOCK) {
+    const watchedPercentage = Math.round((payload.watched_duration / payload.total_duration) * 100);
+    return {
+      id: 1,
+      user_id: 1,
+      course_id: payload.course_id,
+      lesson_id: payload.lesson_id,
+      watched_percentage: watchedPercentage,
+      watched_duration: payload.watched_duration,
+      total_duration: payload.total_duration,
+      is_completed: watchedPercentage >= 90,
+      updated_at: new Date().toISOString(),
+    };
+  }
+  const response = await api.post<ApiResponse<TrackProgressResponse>>('/progress/track', payload);
+  return response.data;
+}
+
+// Mock reviews data
+const mockReviews: Record<number, CourseReview[]> = {
+  1: [
+    {
+      id: 1,
+      course_id: 1,
+      user_id: 5,
+      user_name: 'Alice Johnson',
+      rating: 5,
+      comment: 'Excellent course! The Go programming fundamentals were explained very clearly. Highly recommended for beginners.',
+      created_at: '2024-01-25T10:00:00Z',
+    },
+    {
+      id: 2,
+      course_id: 1,
+      user_id: 3,
+      user_name: 'Bob Smith',
+      rating: 4,
+      comment: 'Great content and well-structured lessons. Would have liked more advanced examples.',
+      created_at: '2024-01-20T14:30:00Z',
+    },
+    {
+      id: 3,
+      course_id: 1,
+      user_id: 6,
+      user_name: 'Carol White',
+      rating: 5,
+      comment: 'Perfect introduction to Go. The instructor explains concepts in a way that is easy to understand.',
+      created_at: '2024-01-18T09:15:00Z',
+    },
+  ],
+  2: [
+    {
+      id: 4,
+      course_id: 2,
+      user_id: 4,
+      user_name: 'David Lee',
+      rating: 5,
+      comment: 'Amazing React patterns course! I learned so much about advanced component design.',
+      created_at: '2024-01-22T11:00:00Z',
+    },
+    {
+      id: 5,
+      course_id: 2,
+      user_id: 7,
+      user_name: 'Emma Wilson',
+      rating: 4,
+      comment: 'Very informative. The custom hooks section was particularly useful for my daily work.',
+      created_at: '2024-01-19T16:45:00Z',
+    },
+  ],
+};
+
+function calculateReviewStats(reviews: CourseReview[]): CourseReviewStats {
+  if (reviews.length === 0) {
+    return {
+      average_rating: 0,
+      total_reviews: 0,
+      rating_distribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
+    };
+  }
+  const distribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+  let totalRating = 0;
+  for (const review of reviews) {
+    totalRating += review.rating;
+    distribution[review.rating as keyof typeof distribution]++;
+  }
+  return {
+    average_rating: totalRating / reviews.length,
+    total_reviews: reviews.length,
+    rating_distribution: distribution,
+  };
+}
+
+async function fetchCourseReviews(courseId: string): Promise<{ reviews: CourseReview[]; stats: CourseReviewStats }> {
+  if (USE_MOCK) {
+    const reviews = mockReviews[Number(courseId)] || [];
+    return { reviews, stats: calculateReviewStats(reviews) };
+  }
+  // In real API, reviews might come from the course endpoint or a dedicated reviews endpoint
+  // For now, we'll use a hypothetical endpoint
+  try {
+    const response = await api.get<ApiResponse<CourseReview[]>>(`/courses/${courseId}/reviews`);
+    const reviews = response.data || [];
+    return { reviews, stats: calculateReviewStats(reviews) };
+  } catch {
+    return { reviews: [], stats: calculateReviewStats([]) };
+  }
+}
+
+interface SubmitReviewResponse {
+  id: number;
+  course_id: number;
+  user_id: number;
+  rating: number;
+  comment: string;
+  created_at: string;
+}
+
+async function submitCourseReview(courseId: number, data: SubmitReviewData): Promise<SubmitReviewResponse> {
+  if (USE_MOCK) {
+    return {
+      id: Date.now(),
+      course_id: courseId,
+      user_id: 1,
+      rating: data.rating,
+      comment: data.comment,
+      created_at: new Date().toISOString(),
+    };
+  }
+  const response = await api.post<ApiResponse<SubmitReviewResponse>>(`/courses/${courseId}/review`, data);
+  return response.data;
+}
+
 interface CourseContextType {
   course: CourseDetail | undefined;
   isLoading: boolean;
@@ -227,11 +379,23 @@ interface CourseContextType {
   selectedLessonId: string | null;
   setSelectedLessonId: (id: string | null) => void;
   lessonProgress: LessonProgressDetail | null | undefined;
+  // Video progress tracking
+  trackProgress: (lessonId: number, watchedDuration: number, totalDuration: number) => void;
+  isTrackingProgress: boolean;
   // Module expand/collapse
   expandedModules: Set<number>;
   toggleModule: (id: number) => void;
   expandAll: () => void;
   collapseAll: () => void;
+  // Reviews
+  reviews: CourseReview[];
+  reviewStats: CourseReviewStats | null;
+  reviewsLoading: boolean;
+  submitReview: (data: SubmitReviewData) => void;
+  isSubmittingReview: boolean;
+  submitReviewSuccess: boolean;
+  submitReviewError: boolean;
+  resetReviewState: () => void;
 }
 
 const CourseContext = createContext<CourseContextType | undefined>(undefined);
@@ -255,6 +419,44 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
       qc.invalidateQueries({ queryKey: queryKeys.dashboard });
     },
   });
+
+  const trackProgressMutation = useMutation({
+    mutationFn: (payload: TrackProgressPayload) => trackVideoProgress(payload),
+    onSuccess: (data) => {
+      if (data.is_completed) {
+        qc.invalidateQueries({ queryKey: queryKeys.course(id) });
+        qc.invalidateQueries({ queryKey: queryKeys.dashboard });
+      }
+    },
+  });
+
+  const trackProgress = useCallback((lessonId: number, watchedDuration: number, totalDuration: number) => {
+    if (!id) return;
+    trackProgressMutation.mutate({
+      course_id: Number(id),
+      lesson_id: lessonId,
+      watched_duration: watchedDuration,
+      total_duration: totalDuration,
+    });
+  }, [id, trackProgressMutation]);
+
+  // Reviews
+  const { data: reviewsData, isLoading: reviewsLoading } = useQuery({
+    queryKey: ['course', id, 'reviews'],
+    queryFn: () => fetchCourseReviews(id),
+    enabled: !!id,
+  });
+
+  const submitReviewMutation = useMutation({
+    mutationFn: (data: SubmitReviewData) => submitCourseReview(Number(id), data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['course', id, 'reviews'] });
+    },
+  });
+
+  const resetReviewState = useCallback(() => {
+    submitReviewMutation.reset();
+  }, [submitReviewMutation]);
 
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
 
@@ -301,10 +503,20 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
         selectedLessonId,
         setSelectedLessonId,
         lessonProgress,
+        trackProgress,
+        isTrackingProgress: trackProgressMutation.isPending,
         expandedModules,
         toggleModule,
         expandAll,
         collapseAll,
+        reviews: reviewsData?.reviews ?? [],
+        reviewStats: reviewsData?.stats ?? null,
+        reviewsLoading,
+        submitReview: (data) => submitReviewMutation.mutate(data),
+        isSubmittingReview: submitReviewMutation.isPending,
+        submitReviewSuccess: submitReviewMutation.isSuccess,
+        submitReviewError: submitReviewMutation.isError,
+        resetReviewState,
       }}
     >
       {children}

@@ -1,10 +1,11 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { USE_MOCK } from '@/lib/mockData';
 import { useAuth } from '@/modules/auth';
 import type { ApiResponse } from '@/types/api';
 import type { UpdateProfileData, ChangePasswordData } from '@/modules/auth/types';
+import type { UserStats, PublicProfile } from './types';
 
 interface ProfileUpdateResponse {
   id: number;
@@ -41,6 +42,76 @@ async function changePasswordApi(data: ChangePasswordData): Promise<void> {
   });
 }
 
+// Mock user stats
+const mockUserStats: UserStats = {
+  total_courses_enrolled: 8,
+  total_courses_completed: 3,
+  total_learning_hours: 45,
+  average_quiz_score: 87.5,
+  total_coins_earned: 500,
+  total_coins_spent: 50,
+  current_coin_balance: 450,
+  badges_earned: 4,
+  certificates_earned: 3,
+  current_streak: 7,
+  longest_streak: 15,
+};
+
+// Mock public profiles
+const mockPublicProfiles: Record<number, PublicProfile> = {
+  1: {
+    id: 1,
+    full_name: 'John Doe',
+    department: 'Engineering',
+    role: 'learner',
+    total_learning_hours: 45,
+    gmfc_coins: 450,
+    current_badge_level: 'silver',
+    courses_completed: 3,
+    certificates: 3,
+  },
+  5: {
+    id: 5,
+    full_name: 'Alice Johnson',
+    department: 'Engineering',
+    role: 'learner',
+    total_learning_hours: 120,
+    gmfc_coins: 850,
+    current_badge_level: 'gold',
+    courses_completed: 8,
+    certificates: 8,
+  },
+  3: {
+    id: 3,
+    full_name: 'Bob Smith',
+    department: 'Product',
+    role: 'learner',
+    total_learning_hours: 38,
+    gmfc_coins: 380,
+    current_badge_level: 'silver',
+    courses_completed: 4,
+    certificates: 4,
+  },
+};
+
+async function fetchUserStats(): Promise<UserStats> {
+  if (USE_MOCK) {
+    return mockUserStats;
+  }
+  const response = await api.get<ApiResponse<UserStats>>('/user/stats');
+  return response.data;
+}
+
+async function fetchPublicProfile(userId: string): Promise<PublicProfile> {
+  if (USE_MOCK) {
+    const profile = mockPublicProfiles[Number(userId)];
+    if (!profile) throw new Error('User not found');
+    return profile;
+  }
+  const response = await api.get<ApiResponse<PublicProfile>>(`/user/profile/${userId}`);
+  return response.data;
+}
+
 interface ProfileContextType {
   // Profile form
   profileForm: { first_name: string; last_name: string; department: string };
@@ -58,12 +129,26 @@ interface ProfileContextType {
   passwordSuccess: boolean;
   // User info
   email: string;
+  // User stats
+  userStats: UserStats | null;
+  userStatsLoading: boolean;
+  userStatsError: boolean;
 }
 
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
 
 export function ProfileProvider({ children }: { children: React.ReactNode }) {
   const { user, updateUser } = useAuth();
+
+  // User stats query
+  const {
+    data: userStats,
+    isLoading: userStatsLoading,
+    isError: userStatsError,
+  } = useQuery({
+    queryKey: ['profile', 'stats'],
+    queryFn: fetchUserStats,
+  });
 
   // Profile form state
   const [profileForm, setProfileForm] = useState({
@@ -160,12 +245,18 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         passwordError,
         passwordSuccess,
         email: user?.email || '',
+        userStats: userStats ?? null,
+        userStatsLoading,
+        userStatsError,
       }}
     >
       {children}
     </ProfileContext.Provider>
   );
 }
+
+// Export the fetchPublicProfile for use in PublicProfileView
+export { fetchPublicProfile };
 
 export function useProfile() {
   const context = useContext(ProfileContext);

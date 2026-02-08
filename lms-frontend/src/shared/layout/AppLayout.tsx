@@ -1,11 +1,15 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/modules/auth';
+import { NotificationBell } from '@/modules/notification';
 import { Avatar } from '@/shared/components';
 
 const navItems = [
   { label: 'Dashboard', path: '/dashboard' },
   { label: 'Learning Paths', path: '/learning-paths' },
+  { label: 'Catalog', path: '/catalog' },
+  { label: 'Certificates', path: '/certificates' },
+  { label: 'Achievements', path: '/achievements' },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -62,7 +66,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               })}
             </nav>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <NotificationBell />
             <Link to="/profile" className="hidden sm:flex items-center gap-2 hover:opacity-80 transition-opacity">
               <Avatar name={user?.first_name || 'U'} size="sm" />
               <span className="text-sm text-neutral-dark">

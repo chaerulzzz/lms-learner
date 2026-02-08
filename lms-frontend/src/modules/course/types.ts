@@ -55,3 +55,31 @@ export interface LessonProgressDetail {
     duration: number;
   }[];
 }
+
+// Course Review Types
+export interface CourseReview {
+  id: number;
+  course_id: number;
+  user_id: number;
+  user_name: string;
+  rating: number;
+  comment: string;
+  created_at: string;
+}
+
+export interface SubmitReviewData {
+  rating: number;
+  comment: string;
+}
+
+export interface CourseReviewStats {
+  average_rating: number;
+  total_reviews: number;
+  rating_distribution: {
+    5: number;
+    4: number;
+    3: number;
+    2: number;
+    1: number;
+  };
+}

@@ -2,6 +2,7 @@ import type { User, AuthResponse } from '@/modules/auth/types';
 import type { DashboardData } from '@/modules/dashboard/types';
 import type { LearningPathSummary, LearningPathDetail } from '@/modules/learning/types';
 import type { CourseDetail } from '@/modules/course/types';
+import type { QuizStartResponse, QuizSubmitResponse, QuizAttempt, QuizInfo, QuizQuestion } from '@/modules/quiz/types';
 
 export const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
 
@@ -484,5 +485,311 @@ export const mockCourseDetails: Record<number, CourseDetail> = {
       { id: 7, name: 'Go Language Cheat Sheet', type: 'pdf', size: 310000, url: '/materials/go-cheatsheet.pdf' },
       { id: 8, name: 'Go Best Practices Guide', type: 'pdf', size: 450000, url: '/materials/go-best-practices.pdf' },
     ],
+  },
+};
+
+// ---- Quiz Mock Data ----
+
+const mockQuizQuestions: Record<number, QuizQuestion[]> = {
+  // Quiz ID 4 - HTML Knowledge Check (from course 1, module 1)
+  4: [
+    {
+      id: 101,
+      question: 'What does HTML stand for?',
+      type: 'multiple_choice',
+      options: [
+        { id: 1, option: 'Hyper Text Markup Language' },
+        { id: 2, option: 'High Tech Modern Language' },
+        { id: 3, option: 'Hyper Transfer Markup Language' },
+        { id: 4, option: 'Home Tool Markup Language' },
+      ],
+    },
+    {
+      id: 102,
+      question: 'Which HTML element is used for the largest heading?',
+      type: 'multiple_choice',
+      options: [
+        { id: 5, option: '<head>' },
+        { id: 6, option: '<h1>' },
+        { id: 7, option: '<heading>' },
+        { id: 8, option: '<h6>' },
+      ],
+    },
+    {
+      id: 103,
+      question: 'HTML5 introduced semantic elements like <article> and <section>.',
+      type: 'true_false',
+      options: [
+        { id: 9, option: 'True' },
+        { id: 10, option: 'False' },
+      ],
+    },
+    {
+      id: 104,
+      question: 'Which attribute is used to provide an alternate text for an image?',
+      type: 'multiple_choice',
+      options: [
+        { id: 11, option: 'title' },
+        { id: 12, option: 'alt' },
+        { id: 13, option: 'src' },
+        { id: 14, option: 'href' },
+      ],
+    },
+  ],
+  // Quiz ID 12 - Final Assessment (from course 1, module 3)
+  12: [
+    {
+      id: 201,
+      question: 'Which method is used to add an event listener in JavaScript?',
+      type: 'multiple_choice',
+      options: [
+        { id: 21, option: 'addEvent()' },
+        { id: 22, option: 'addEventListener()' },
+        { id: 23, option: 'attachEvent()' },
+        { id: 24, option: 'onEvent()' },
+      ],
+    },
+    {
+      id: 202,
+      question: 'What is the correct syntax for a CSS class selector?',
+      type: 'multiple_choice',
+      options: [
+        { id: 25, option: '#classname' },
+        { id: 26, option: '.classname' },
+        { id: 27, option: 'classname' },
+        { id: 28, option: '*classname' },
+      ],
+    },
+    {
+      id: 203,
+      question: 'Flexbox is a one-dimensional layout method.',
+      type: 'true_false',
+      options: [
+        { id: 29, option: 'True' },
+        { id: 30, option: 'False' },
+      ],
+    },
+    {
+      id: 204,
+      question: 'Which JavaScript keyword is used to declare a constant?',
+      type: 'multiple_choice',
+      options: [
+        { id: 31, option: 'var' },
+        { id: 32, option: 'let' },
+        { id: 33, option: 'const' },
+        { id: 34, option: 'constant' },
+      ],
+    },
+    {
+      id: 205,
+      question: 'What does DOM stand for?',
+      type: 'multiple_choice',
+      options: [
+        { id: 35, option: 'Document Object Model' },
+        { id: 36, option: 'Data Object Model' },
+        { id: 37, option: 'Document Oriented Model' },
+        { id: 38, option: 'Digital Object Memory' },
+      ],
+    },
+  ],
+  // Quiz ID 15 - State Management Quiz (from course 3, module 4)
+  15: [
+    {
+      id: 301,
+      question: 'useReducer is best suited for managing complex state logic.',
+      type: 'true_false',
+      options: [
+        { id: 41, option: 'True' },
+        { id: 42, option: 'False' },
+      ],
+    },
+    {
+      id: 302,
+      question: 'What hook is used to access context values in React?',
+      type: 'multiple_choice',
+      options: [
+        { id: 43, option: 'useContext' },
+        { id: 44, option: 'useProvider' },
+        { id: 45, option: 'useConsumer' },
+        { id: 46, option: 'useStore' },
+      ],
+    },
+    {
+      id: 303,
+      question: 'Context API causes all consuming components to re-render when the context value changes.',
+      type: 'true_false',
+      options: [
+        { id: 47, option: 'True' },
+        { id: 48, option: 'False' },
+      ],
+    },
+  ],
+};
+
+const mockCorrectAnswers: Record<number, number> = {
+  // Quiz 4 answers
+  101: 1,  // Hyper Text Markup Language
+  102: 6,  // <h1>
+  103: 9,  // True
+  104: 12, // alt
+  // Quiz 12 answers
+  201: 22, // addEventListener()
+  202: 26, // .classname
+  203: 29, // True
+  204: 33, // const
+  205: 35, // Document Object Model
+  // Quiz 15 answers
+  301: 41, // True
+  302: 43, // useContext
+  303: 47, // True
+};
+
+const mockQuizInfo: Record<number, QuizInfo> = {
+  4: {
+    id: 4,
+    title: 'HTML Knowledge Check',
+    description: 'Test your understanding of HTML fundamentals covered in this module.',
+    questionCount: 4,
+    timeLimitMinutes: 10,
+    passingScore: 70,
+    maxAttempts: 3,
+  },
+  12: {
+    id: 12,
+    title: 'Final Assessment',
+    description: 'Comprehensive assessment covering HTML, CSS, and JavaScript fundamentals from the entire course.',
+    questionCount: 5,
+    timeLimitMinutes: 20,
+    passingScore: 80,
+    maxAttempts: 2,
+  },
+  15: {
+    id: 15,
+    title: 'State Management Quiz',
+    description: 'Quick check on your understanding of React state management patterns.',
+    questionCount: 3,
+    timeLimitMinutes: 8,
+    passingScore: 70,
+    maxAttempts: 3,
+  },
+};
+
+const mockQuizAttempts: Record<number, QuizAttempt[]> = {
+  4: [
+    {
+      attempt_id: 1001,
+      quiz_id: 4,
+      attempt_number: 1,
+      score: 50,
+      percentage: 50,
+      passed: false,
+      submitted_at: '2024-01-22T10:30:00Z',
+    },
+    {
+      attempt_id: 1002,
+      quiz_id: 4,
+      attempt_number: 2,
+      score: 75,
+      percentage: 75,
+      passed: true,
+      submitted_at: '2024-01-22T14:15:00Z',
+    },
+  ],
+  12: [],
+  15: [
+    {
+      attempt_id: 1003,
+      quiz_id: 15,
+      attempt_number: 1,
+      score: 100,
+      percentage: 100,
+      passed: true,
+      submitted_at: '2024-02-05T09:45:00Z',
+    },
+  ],
+};
+
+let nextAttemptId = 2000;
+
+export const mockQuizData = {
+  getQuizInfo: (quizId: number): QuizInfo | null => {
+    return mockQuizInfo[quizId] || null;
+  },
+
+  getAttempts: (quizId: number): QuizAttempt[] => {
+    return mockQuizAttempts[quizId] || [];
+  },
+
+  startQuiz: (quizId: number): QuizStartResponse => {
+    const questions = mockQuizQuestions[quizId];
+    if (!questions) {
+      throw new Error('Quiz not found');
+    }
+    const info = mockQuizInfo[quizId];
+    return {
+      attempt_id: ++nextAttemptId,
+      quiz_id: quizId,
+      questions: questions,
+      started_at: new Date().toISOString(),
+      time_limit_seconds: (info?.timeLimitMinutes || 10) * 60,
+    };
+  },
+
+  submitQuiz: (
+    attemptId: number,
+    quizId: number,
+    answers: Record<string, string>,
+  ): QuizSubmitResponse => {
+    const questions = mockQuizQuestions[quizId] || [];
+    let correctCount = 0;
+    const answerResults = questions.map((q) => {
+      const userAnswerId = Number(answers[String(q.id)]);
+      const correctAnswerId = mockCorrectAnswers[q.id];
+      const isCorrect = userAnswerId === correctAnswerId;
+      if (isCorrect) correctCount++;
+
+      const userOption = q.options.find((o) => o.id === userAnswerId);
+      const correctOption = q.options.find((o) => o.id === correctAnswerId);
+
+      return {
+        question_id: q.id,
+        question: q.question,
+        user_answer: userOption?.option || 'No answer',
+        correct_answer: correctOption?.option || '',
+        is_correct: isCorrect,
+      };
+    });
+
+    const percentage = Math.round((correctCount / questions.length) * 100);
+    const info = mockQuizInfo[quizId];
+    const passed = percentage >= (info?.passingScore || 70);
+    const coinsAwarded = passed ? 50 : 0;
+
+    // Add to attempts history
+    const attempt: QuizAttempt = {
+      attempt_id: attemptId,
+      quiz_id: quizId,
+      attempt_number: (mockQuizAttempts[quizId]?.length || 0) + 1,
+      score: correctCount * 20,
+      percentage,
+      passed,
+      submitted_at: new Date().toISOString(),
+    };
+    if (!mockQuizAttempts[quizId]) {
+      mockQuizAttempts[quizId] = [];
+    }
+    mockQuizAttempts[quizId].push(attempt);
+
+    return {
+      attempt_id: attemptId,
+      quiz_id: quizId,
+      score: correctCount * 20,
+      total_marks: questions.length * 20,
+      percentage,
+      passed,
+      coins_awarded: coinsAwarded,
+      submitted_at: new Date().toISOString(),
+      answers: answerResults,
+    };
   },
 };
