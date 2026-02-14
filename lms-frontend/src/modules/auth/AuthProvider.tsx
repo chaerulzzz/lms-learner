@@ -60,11 +60,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (credentials.email === 'learner1@lms.com' && credentials.password === 'learner@123') {
         localStorage.setItem('authToken', MOCK_TOKEN);
         setUser(mockAuthResponse.user);
-      } else if (credentials.email === 'admin@lms.com' && credentials.password === 'admin123') {
+      } else if (credentials.email === 'admin@lms.com' && credentials.password === 'admin@123') {
         localStorage.setItem('authToken', MOCK_ADMIN_TOKEN);
         setUser(mockAdminUser);
       } else {
-        setError('Invalid credentials. Use learner1@lms.com / learner@123 or admin@lms.com / admin123');
+        setError('Invalid credentials. Use learner1@lms.com / learner@123 or admin@lms.com / admin@123');
         throw new Error('Login failed');
       }
       return;

@@ -26,8 +26,11 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response.data,
   async (error: AxiosError) => {
-    if (error.response?.status === 401) {
-      // Token expired or invalid
+    const requestUrl = error.config?.url || '';
+    const isLoginRequest = requestUrl.includes('/auth/login');
+
+    if (error.response?.status === 401 && !isLoginRequest) {
+      // Token expired or invalid (skip for login requests — let them handle their own errors)
       localStorage.removeItem('authToken');
       window.location.href = '/login';
     }

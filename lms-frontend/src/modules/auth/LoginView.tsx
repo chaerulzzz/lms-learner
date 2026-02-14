@@ -101,7 +101,7 @@ export default function LoginView() {
                 className="btn-secondary flex-1 text-sm"
                 onClick={() => {
                   setEmail('admin@lms.com');
-                  setPassword('admin123');
+                  setPassword('admin@123');
                 }}
               >
                 Admin
