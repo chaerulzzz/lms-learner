@@ -1,21 +1,5 @@
-import type { User, AdminUser } from '@/modules/auth/types';
-import type { UserListItem } from '@/modules/users/types';
-import type { AuditLogEntry } from '@/modules/audit/types';
+import type { UserListItem, AuditLogEntry } from './types';
 
-// Mock admin user for login
-export const mockAdminUser: AdminUser = {
-  id: 1,
-  email: 'admin@lms.com',
-  first_name: 'Admin',
-  last_name: 'User',
-  full_name: 'Admin User',
-  role: 'admin',
-  department: 'Human Capital',
-  created_at: '2024-01-01T00:00:00Z',
-  updated_at: '2024-01-28T12:00:00Z',
-};
-
-// Mock users list
 export const mockUsers: UserListItem[] = [
   {
     id: 1,
@@ -84,7 +68,6 @@ export const mockUsers: UserListItem[] = [
   },
 ];
 
-// Mock audit logs
 export const mockAuditLogs: AuditLogEntry[] = [
   {
     id: 1,
@@ -143,25 +126,7 @@ export const mockAuditLogs: AuditLogEntry[] = [
   },
 ];
 
-// Mock API functions
-export const mockApi = {
-  login: async (email: string, password: string): Promise<{ token: string; user: AdminUser }> => {
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    if (email === 'admin@lms.com' && password === 'admin123') {
-      return {
-        token: 'mock_admin_token_' + Date.now(),
-        user: mockAdminUser,
-      };
-    }
-    throw new Error('Invalid credentials');
-  },
-
-  getMe: async (): Promise<AdminUser> => {
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    return mockAdminUser;
-  },
-
+export const adminMockApi = {
   getUsers: async (page: number = 1, pageSize: number = 10, search?: string) => {
     await new Promise((resolve) => setTimeout(resolve, 400));
 

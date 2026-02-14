@@ -7,3 +7,4 @@ export { FormField } from './FormField';
 export { Skeleton, CardSkeleton, StatCardSkeleton, ListSkeleton, DetailPageSkeleton } from './LoadingSkeleton';
 export { ProgressBar } from './ProgressBar';
 export { StatusBadge } from './StatusBadge';
+export { RoleGuard } from './RoleGuard';

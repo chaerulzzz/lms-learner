@@ -23,6 +23,10 @@ export default {
           error: '#DC3545',
           info: '#17A2B8',
         },
+        admin: {
+          sidebar: '#1F2937',
+          'sidebar-hover': '#374151',
+        },
         progress: {
           low: '#DC3545',      // Red (0-30%)
           medium: '#FFA500',   // Orange (31-70%)

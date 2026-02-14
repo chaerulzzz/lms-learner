@@ -83,3 +83,10 @@ export interface CourseReviewStats {
     1: number;
   };
 }
+
+// Video Quality Types for Enhanced Video Player
+export interface VideoQuality {
+  label: string;
+  value: string;
+  bitrate: string;
+}

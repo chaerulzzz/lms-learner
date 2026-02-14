@@ -9,7 +9,10 @@ import { CatalogProvider, CatalogView } from '@/modules/catalog';
 import { GamificationProvider, GamificationView } from '@/modules/gamification';
 import { NotificationProvider, NotificationListView, NotificationSettingsView } from '@/modules/notification';
 import { CertificateProvider, CertificateLibraryView, CertificateDetailView } from '@/modules/certificate';
+import { AdminDashboardView, UsersView, AuditLogsView } from '@/modules/admin';
 import AppLayout from '@/shared/layout/AppLayout';
+import AdminLayout from '@/shared/layout/AdminLayout';
+import { RoleGuard } from '@/shared/components';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -25,14 +28,48 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" />;
 }
 
-function ProtectedLayout({ children }: { children: React.ReactNode }) {
+function LearnerLayout({ children }: { children: React.ReactNode }) {
   return (
     <ProtectedRoute>
-      <NotificationProvider>
-        <AppLayout>{children}</AppLayout>
-      </NotificationProvider>
+      <RoleGuard allowedRoles={['learner', 'instructor']}>
+        <NotificationProvider>
+          <AppLayout>{children}</AppLayout>
+        </NotificationProvider>
+      </RoleGuard>
     </ProtectedRoute>
   );
+}
+
+function ProtectedAdminLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <ProtectedRoute>
+      <RoleGuard allowedRoles={['admin', 'hr_personnel']}>
+        <AdminLayout>{children}</AdminLayout>
+      </RoleGuard>
+    </ProtectedRoute>
+  );
+}
+
+function RoleRedirect() {
+  const { user, isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-neutral-light">
+        <div className="text-neutral-dark">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated || !user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (user.role === 'admin' || user.role === 'hr_personnel') {
+    return <Navigate to="/admin" replace />;
+  }
+
+  return <Navigate to="/dashboard" replace />;
 }
 
 function App() {
@@ -40,74 +77,93 @@ function App() {
     <Router>
       <AuthProvider>
         <Routes>
+          {/* Public routes */}
           <Route path="/login" element={<LoginView />} />
           <Route path="/register" element={<RegisterView />} />
+
+          {/* Role-based redirect */}
+          <Route path="/" element={<RoleRedirect />} />
+
+          {/* Learner routes */}
           <Route path="/dashboard" element={
-            <ProtectedLayout>
+            <LearnerLayout>
               <DashboardProvider><DashboardView /></DashboardProvider>
-            </ProtectedLayout>
+            </LearnerLayout>
           } />
           <Route path="/learning-paths" element={
-            <ProtectedLayout>
+            <LearnerLayout>
               <LearningProvider><LearningPathsView /></LearningProvider>
-            </ProtectedLayout>
+            </LearnerLayout>
           } />
           <Route path="/learning-paths/:pathId" element={
-            <ProtectedLayout>
+            <LearnerLayout>
               <LearningProvider><LearningPathDetailView /></LearningProvider>
-            </ProtectedLayout>
+            </LearnerLayout>
           } />
           <Route path="/courses/:courseId" element={
-            <ProtectedLayout>
+            <LearnerLayout>
               <CourseProvider><CourseDetailView /></CourseProvider>
-            </ProtectedLayout>
+            </LearnerLayout>
           } />
           <Route path="/profile" element={
-            <ProtectedLayout>
+            <LearnerLayout>
               <ProfileProvider><ProfileView /></ProfileProvider>
-            </ProtectedLayout>
+            </LearnerLayout>
           } />
           <Route path="/users/:userId" element={
-            <ProtectedLayout>
+            <LearnerLayout>
               <PublicProfileView />
-            </ProtectedLayout>
+            </LearnerLayout>
           } />
           <Route path="/quizzes/:quizId" element={
-            <ProtectedLayout>
+            <LearnerLayout>
               <QuizProvider><QuizView /></QuizProvider>
-            </ProtectedLayout>
+            </LearnerLayout>
           } />
           <Route path="/catalog" element={
-            <ProtectedLayout>
+            <LearnerLayout>
               <CatalogProvider><CatalogView /></CatalogProvider>
-            </ProtectedLayout>
+            </LearnerLayout>
           } />
           <Route path="/achievements" element={
-            <ProtectedLayout>
+            <LearnerLayout>
               <GamificationProvider><GamificationView /></GamificationProvider>
-            </ProtectedLayout>
+            </LearnerLayout>
           } />
           <Route path="/notifications" element={
-            <ProtectedLayout>
+            <LearnerLayout>
               <NotificationListView />
-            </ProtectedLayout>
+            </LearnerLayout>
           } />
           <Route path="/notifications/settings" element={
-            <ProtectedLayout>
+            <LearnerLayout>
               <NotificationSettingsView />
-            </ProtectedLayout>
+            </LearnerLayout>
           } />
           <Route path="/certificates" element={
-            <ProtectedLayout>
+            <LearnerLayout>
               <CertificateProvider><CertificateLibraryView /></CertificateProvider>
-            </ProtectedLayout>
+            </LearnerLayout>
           } />
           <Route path="/certificates/:certificateId" element={
-            <ProtectedLayout>
+            <LearnerLayout>
               <CertificateProvider><CertificateDetailView /></CertificateProvider>
-            </ProtectedLayout>
+            </LearnerLayout>
           } />
-          <Route path="/" element={<Navigate to="/dashboard" />} />
+
+          {/* Admin routes */}
+          <Route path="/admin" element={
+            <ProtectedAdminLayout><AdminDashboardView /></ProtectedAdminLayout>
+          } />
+          <Route path="/admin/users" element={
+            <ProtectedAdminLayout><UsersView /></ProtectedAdminLayout>
+          } />
+          <Route path="/admin/audit-logs" element={
+            <ProtectedAdminLayout><AuditLogsView /></ProtectedAdminLayout>
+          } />
+
+          {/* Catch-all */}
+          <Route path="*" element={<RoleRedirect />} />
         </Routes>
       </AuthProvider>
     </Router>

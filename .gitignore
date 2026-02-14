@@ -32,3 +32,5 @@ yarn-debug.log*
 
 # Claude Code local settings
 .claude/
+CLAUDE.local.md
+CLAUDE.md

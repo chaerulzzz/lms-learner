@@ -1,21 +1,21 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { api, isMockMode } from '@/lib/api';
-import { mockApi } from '@/lib/mockData';
+import { api } from '@/lib/api';
+import { USE_MOCK } from '@/lib/mockData';
 import { Skeleton } from '@/shared/components';
+import { adminMockApi } from './adminMockData';
 import type { UserListItem } from './types';
 
 export default function UsersView() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const pageSize = 10;
-  const useMock = isMockMode();
 
   const { data, isLoading } = useQuery({
-    queryKey: ['users', page, search],
+    queryKey: ['admin-users', page, search],
     queryFn: async () => {
-      if (useMock) {
-        return mockApi.getUsers(page, pageSize, search);
+      if (USE_MOCK) {
+        return adminMockApi.getUsers(page, pageSize, search);
       }
 
       const params = new URLSearchParams({
@@ -24,8 +24,9 @@ export default function UsersView() {
       });
       if (search) params.append('search', search);
 
-      const response = await api.get(`/admin/users?${params}`);
-      return response.data;
+      // lms-frontend's api auto-unwraps response.data, so we get the inner object directly
+      const result = await api.get(`/admin/users?${params}`);
+      return result;
     },
   });
 

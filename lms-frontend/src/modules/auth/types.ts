@@ -3,6 +3,8 @@ export const UserRole = {
   INSTRUCTOR: 'instructor',
   ADMIN: 'admin',
   HR_PERSONNEL: 'hr_personnel',
+  REPORTING_VIEWER: 'reporting_viewer',
+  DEPARTMENT_MANAGER: 'department_manager',
 } as const;
 
 export type UserRole = typeof UserRole[keyof typeof UserRole];
