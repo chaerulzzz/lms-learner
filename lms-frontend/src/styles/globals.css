@@ -119,6 +119,30 @@
   .table tbody tr:hover {
     @apply bg-neutral-light cursor-pointer;
   }
+
+  /* Admin Sidebar Navigation */
+  .sidebar-link {
+    @apply flex items-center gap-3 px-4 py-3 text-gray-300 hover:bg-admin-sidebar-hover hover:text-white rounded-lg transition-colors;
+  }
+
+  .sidebar-link.active {
+    @apply bg-primary-red text-white;
+  }
+
+  /* Admin Table Container */
+  .table-container {
+    @apply overflow-x-auto bg-white rounded-lg shadow-card border border-neutral-medium;
+  }
+
+  /* Ghost Button */
+  .btn-ghost {
+    @apply btn bg-transparent text-neutral-dark hover:bg-neutral-light;
+  }
+
+  /* Info Badge */
+  .badge-info {
+    @apply badge bg-status-info text-white;
+  }
 }
 
 @layer utilities {

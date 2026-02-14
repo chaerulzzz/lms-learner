@@ -1,6 +1,6 @@
 import { useAuth } from '@/modules/auth';
 
-export default function DashboardView() {
+export default function AdminDashboardView() {
   const { user } = useAuth();
 
   const stats = [
@@ -93,11 +93,11 @@ export default function DashboardView() {
               { rank: 1, name: 'Alice Johnson', coins: 850 },
               { rank: 2, name: 'John Doe', coins: 450 },
               { rank: 3, name: 'Jane Smith', coins: 320 },
-            ].map((user) => (
-              <div key={user.rank} className="flex items-center gap-3 py-2">
-                <span className="text-lg">{user.rank === 1 ? '🥇' : user.rank === 2 ? '🥈' : '🥉'}</span>
-                <span className="flex-1 text-sm text-neutral-dark">{user.name}</span>
-                <span className="text-sm font-medium text-primary-red">{user.coins} coins</span>
+            ].map((performer) => (
+              <div key={performer.rank} className="flex items-center gap-3 py-2">
+                <span className="text-lg">{performer.rank === 1 ? '🥇' : performer.rank === 2 ? '🥈' : '🥉'}</span>
+                <span className="flex-1 text-sm text-neutral-dark">{performer.name}</span>
+                <span className="text-sm font-medium text-primary-red">{performer.coins} coins</span>
               </div>
             ))}
           </div>

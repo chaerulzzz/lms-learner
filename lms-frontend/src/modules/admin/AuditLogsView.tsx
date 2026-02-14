@@ -1,21 +1,21 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { api, isMockMode } from '@/lib/api';
-import { mockApi } from '@/lib/mockData';
+import { api } from '@/lib/api';
+import { USE_MOCK } from '@/lib/mockData';
 import { Skeleton } from '@/shared/components';
+import { adminMockApi } from './adminMockData';
 import type { AuditLogEntry } from './types';
 
 export default function AuditLogsView() {
   const [actionFilter, setActionFilter] = useState('');
   const [page, setPage] = useState(1);
   const pageSize = 10;
-  const useMock = isMockMode();
 
   const { data, isLoading } = useQuery({
-    queryKey: ['audit-logs', page, actionFilter],
+    queryKey: ['admin-audit-logs', page, actionFilter],
     queryFn: async () => {
-      if (useMock) {
-        return mockApi.getAuditLogs(page, pageSize, actionFilter || undefined);
+      if (USE_MOCK) {
+        return adminMockApi.getAuditLogs(page, pageSize, actionFilter || undefined);
       }
 
       const params = new URLSearchParams({
@@ -24,8 +24,9 @@ export default function AuditLogsView() {
       });
       if (actionFilter) params.append('action', actionFilter);
 
-      const response = await api.get(`/admin/audit-logs?${params}`);
-      return response.data;
+      // lms-frontend's api auto-unwraps response.data
+      const result = await api.get(`/admin/audit-logs?${params}`);
+      return result;
     },
   });
 

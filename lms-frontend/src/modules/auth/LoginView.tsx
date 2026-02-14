@@ -7,16 +7,22 @@ export default function LoginView() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { login, isAuthenticated, error } = useAuth();
+  const { login, isAuthenticated, isAdmin, error } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
     if (isAuthenticated) {
-      const from = (location.state as { from?: string })?.from || '/dashboard';
-      navigate(from);
+      const from = (location.state as { from?: string })?.from;
+      if (from) {
+        navigate(from);
+      } else if (isAdmin) {
+        navigate('/admin');
+      } else {
+        navigate('/dashboard');
+      }
     }
-  }, [isAuthenticated, navigate, location.state]);
+  }, [isAuthenticated, isAdmin, navigate, location.state]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,16 +85,28 @@ export default function LoginView() {
             <p className="text-xs text-neutral-dark mb-2">
               Local testing (backend offline):
             </p>
-            <button
-              type="button"
-              className="btn-secondary w-full text-sm"
-              onClick={() => {
-                setEmail('learner1@lms.com');
-                setPassword('learner@123');
-              }}
-            >
-              Fill Test Credentials
-            </button>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                className="btn-secondary flex-1 text-sm"
+                onClick={() => {
+                  setEmail('learner1@lms.com');
+                  setPassword('learner@123');
+                }}
+              >
+                Learner
+              </button>
+              <button
+                type="button"
+                className="btn-secondary flex-1 text-sm"
+                onClick={() => {
+                  setEmail('admin@lms.com');
+                  setPassword('admin123');
+                }}
+              >
+                Admin
+              </button>
+            </div>
           </div>
         </div>
       </div>

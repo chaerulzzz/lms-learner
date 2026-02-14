@@ -8,6 +8,21 @@ export const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
 
 export const MOCK_TOKEN = 'mock-jwt-token-for-local-testing';
 
+export const mockAdminUser: User = {
+  id: 99,
+  email: 'admin@lms.com',
+  first_name: 'Admin',
+  last_name: 'User',
+  full_name: 'Admin User',
+  role: 'admin',
+  department: 'Human Capital',
+  gmfc_coins: 0,
+  current_badge_level: 'none',
+  total_learning_hours: 0,
+  current_streak: 0,
+  created_at: '2024-01-01T00:00:00Z',
+};
+
 export const mockUser: User = {
   id: 1,
   email: 'learner1@lms.com',

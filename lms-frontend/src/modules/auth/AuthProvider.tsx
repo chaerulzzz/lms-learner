@@ -1,8 +1,9 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import type { User, LoginCredentials } from './types';
+import type { UserRole } from './types';
 import type { ApiResponse } from '@/types/api';
 import { api } from '@/lib/api';
-import { mockAuthResponse, MOCK_TOKEN, USE_MOCK } from '@/lib/mockData';
+import { mockAuthResponse, mockAdminUser, MOCK_TOKEN, USE_MOCK } from '@/lib/mockData';
 
 interface AuthContextType {
   user: User | null;
@@ -13,9 +14,13 @@ interface AuthContextType {
   isLoading: boolean;
   error: string | null;
   isMockMode: boolean;
+  isAdmin: boolean;
+  hasRole: (roles: UserRole[]) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const MOCK_ADMIN_TOKEN = 'mock-admin-jwt-token-for-local-testing';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -29,7 +34,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!token) return;
 
         if (USE_MOCK) {
-          setUser(mockAuthResponse.user);
+          if (token === MOCK_ADMIN_TOKEN) {
+            setUser(mockAdminUser);
+          } else {
+            setUser(mockAuthResponse.user);
+          }
         } else {
           const response = await api.get<ApiResponse<User>>('/auth/me');
           setUser(response.data);
@@ -51,8 +60,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (credentials.email === 'learner1@lms.com' && credentials.password === 'learner@123') {
         localStorage.setItem('authToken', MOCK_TOKEN);
         setUser(mockAuthResponse.user);
+      } else if (credentials.email === 'admin@lms.com' && credentials.password === 'admin123') {
+        localStorage.setItem('authToken', MOCK_ADMIN_TOKEN);
+        setUser(mockAdminUser);
       } else {
-        setError('Invalid credentials. Use learner1@lms.com / learner@123 in mock mode.');
+        setError('Invalid credentials. Use learner1@lms.com / learner@123 or admin@lms.com / admin123');
         throw new Error('Login failed');
       }
       return;
@@ -79,6 +91,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser((prev) => (prev ? { ...prev, ...data } : prev));
   }, []);
 
+  const isAdmin = useMemo(() => {
+    return user?.role === 'admin' || user?.role === 'hr_personnel';
+  }, [user?.role]);
+
+  const hasRole = useCallback((roles: UserRole[]) => {
+    return user ? roles.includes(user.role) : false;
+  }, [user]);
+
   return (
     <AuthContext.Provider
       value={{
@@ -90,6 +110,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         error,
         isMockMode: USE_MOCK,
+        isAdmin,
+        hasRole,
       }}
     >
       {children}

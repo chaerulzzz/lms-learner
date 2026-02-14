@@ -3,15 +3,22 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/modules/auth';
 
 const navItems = [
-  { label: 'Dashboard', path: '/', icon: '📊' },
-  { label: 'Users', path: '/users', icon: '👥' },
-  { label: 'Audit Logs', path: '/audit-logs', icon: '📋' },
+  { label: 'Dashboard', path: '/admin', icon: '📊' },
+  { label: 'Users', path: '/admin/users', icon: '👥' },
+  { label: 'Audit Logs', path: '/admin/audit-logs', icon: '📋' },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user, logout, isMockMode } = useAuth();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const isActive = (path: string) => {
+    if (path === '/admin') {
+      return location.pathname === '/admin';
+    }
+    return location.pathname.startsWith(path);
+  };
 
   return (
     <div className="min-h-screen flex bg-neutral-light">
@@ -25,19 +32,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
           {/* Navigation */}
           <nav className="flex-1 px-4 py-6 space-y-1">
-            {navItems.map((item) => {
-              const isActive = location.pathname === item.path;
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={`sidebar-link ${isActive ? 'active' : ''}`}
-                >
-                  <span className="text-xl">{item.icon}</span>
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
+            {navItems.map((item) => (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`sidebar-link ${isActive(item.path) ? 'active' : ''}`}
+              >
+                <span className="text-xl">{item.icon}</span>
+                <span>{item.label}</span>
+              </Link>
+            ))}
           </nav>
 
           {/* User Info */}
@@ -70,7 +74,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="fixed inset-0 z-40 lg:hidden">
           <div className="fixed inset-0 bg-black/50" onClick={() => setSidebarOpen(false)} />
           <div className="fixed left-0 top-0 bottom-0 w-64 bg-admin-sidebar">
-            {/* Same content as desktop sidebar */}
             <div className="flex items-center justify-between h-16 px-6 border-b border-gray-700">
               <h1 className="text-xl font-bold text-white">LMS Admin</h1>
               <button onClick={() => setSidebarOpen(false)} className="text-white">
@@ -80,20 +83,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </button>
             </div>
             <nav className="px-4 py-6 space-y-1">
-              {navItems.map((item) => {
-                const isActive = location.pathname === item.path;
-                return (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    onClick={() => setSidebarOpen(false)}
-                    className={`sidebar-link ${isActive ? 'active' : ''}`}
-                  >
-                    <span className="text-xl">{item.icon}</span>
-                    <span>{item.label}</span>
-                  </Link>
-                );
-              })}
+              {navItems.map((item) => (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  onClick={() => setSidebarOpen(false)}
+                  className={`sidebar-link ${isActive(item.path) ? 'active' : ''}`}
+                >
+                  <span className="text-xl">{item.icon}</span>
+                  <span>{item.label}</span>
+                </Link>
+              ))}
             </nav>
           </div>
         </div>
